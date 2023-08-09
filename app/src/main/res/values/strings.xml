@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Converter</string>
+    <string name="czk">CZK</string>
+    <string name="eur">EUR</string>
+    <string name="convert">Convert</string>
+    <string name="default_exchange_rate">1€ = %1$.5fKč</string>
+    <string name="round_up_czk">Round Up CZK</string>
+</resources>
