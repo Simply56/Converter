@@ -1,5 +1,6 @@
 package com.bluemarble.converter2
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
@@ -7,8 +8,11 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.view.View
 import android.view.View.OnFocusChangeListener
+import android.widget.AdapterView
 import android.widget.EditText
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -21,10 +25,11 @@ import okhttp3.Response
 import okio.IOException
 import org.json.JSONObject
 
+// VERCA <3
 
 class MainActivity : AppCompatActivity() {
 
-    var exchangeRate = 24.281F // default value when app is first installed
+    var exchangeRate = 25F // default value when app is first installed
 
 
     private val textWatcher: TextWatcher = object : TextWatcher {
@@ -43,6 +48,7 @@ class MainActivity : AppCompatActivity() {
 
         val czkView: EditText = findViewById(R.id.editTextCzk)
         val eurView: EditText = findViewById(R.id.editTextEur)
+        val currencySpinner: Spinner = findViewById(R.id.currencySpinner)
         val roundUpSwitchView: SwitchMaterial = findViewById(R.id.round_up_switch)
         roundUpSwitchView.setOnClickListener {
             convert()
@@ -54,7 +60,6 @@ class MainActivity : AppCompatActivity() {
 
         // Retrieving the number from SharedPreferences, if not found return default value
         exchangeRate = sharedPreferences.getFloat("exchangeRate", exchangeRate)
-
         exchangeRate = getRate()  // try to get online data if not found return default value
 
 
@@ -62,7 +67,6 @@ class MainActivity : AppCompatActivity() {
             findViewById(R.id.exchangeRateTextView) // set the exchange rate textView
         exchangeRateView.text =
             String.format(getString(R.string.default_exchange_rate), exchangeRate)
-
 
         czkView.onFocusChangeListener = OnFocusChangeListener { _, b ->
             if (b) {
@@ -77,8 +81,23 @@ class MainActivity : AppCompatActivity() {
             }
         }
         czkView.requestFocus()
+
+        currencySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: AdapterView<*>?, view: View?, position: Int, id: Long
+            ) {
+                val selectedCurrency = parent?.getItemAtPosition(position).toString()
+                // Use the selectedCurrency value to update your UI or perform other actions
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                currencySpinner.setSelection(0)
+
+            }
+        }
     }
 
+    @Suppress("DEPRECATION")
     private fun isNetworkAvailable(): Boolean {
         val connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
         val activeNetworkInfo = connectivityManager.activeNetworkInfo

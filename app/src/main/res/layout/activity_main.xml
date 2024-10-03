@@ -8,13 +8,35 @@
     tools:context="com.bluemarble.converter2.MainActivity">
 
 
+    <Spinner
+        android:id="@+id/currencySpinner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:entries="@array/currency_codes"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/round_up_switch"/>
+
+
+<!--    <com.google.android.material.textview.MaterialTextView-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="@string/ver_a_3"-->
+<!--        android:textAlignment="center"-->
+<!--        android:textSize="40sp"-->
+<!--        app:layout_constraintBottom_toBottomOf="parent"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintStart_toStartOf="parent"-->
+<!--        app:layout_constraintTop_toBottomOf="@id/editTextEurLayout" />-->
+
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/editTextCzkLayout"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="100dp"
-        android:hint="@string/czk"
+        android:hint="@string/foreign_currency"
         android:maxWidth="400dp"
         android:padding="10dp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -25,7 +47,7 @@
             android:id="@+id/editTextCzk"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="number"
+            android:inputType="numberDecimal"
             android:maxWidth="400dp"
             android:textSize="32sp" />
 
@@ -70,8 +92,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="20dp"
-        android:checked="true"
-        android:text="@string/round_up_czk"
+        android:checked="false"
+        android:text="@string/round_up"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/editTextEurLayout" />
+
+
 </androidx.constraintlayout.widget.ConstraintLayout>
