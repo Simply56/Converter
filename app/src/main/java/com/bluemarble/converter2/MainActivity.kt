@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -12,106 +13,157 @@ import android.view.View
 import android.view.View.OnFocusChangeListener
 import android.widget.AdapterView
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.switchmaterial.SwitchMaterial
+import com.google.android.material.textfield.TextInputLayout
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
-import okio.IOException
 import org.json.JSONObject
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 // VERCA <3
 
+
 class MainActivity : AppCompatActivity() {
 
-    var exchangeRate = 25F // default value when app is first installed
+    class State {
+        var upperSelection: String = "CZK"
+        var lowerSelection: String = "EUR"
+        var ratesMap = hashMapOf("EUR" to 1.0, "CZK" to 25.0)
+        var exchangeRate: Double = 25.0 // default value when app is first installed
+
+        private var locked: Boolean = false
+
+        fun calculateExchangeRate() {
+            lock()
+            val upperValue = ratesMap[upperSelection]
+            val lowerValue = ratesMap[lowerSelection]
+            if (upperValue != null && lowerValue != null) {
+                exchangeRate = ((1 / lowerValue) * upperValue)
+            }
+            unlock()
+        }
+
+        fun unlock() {
+            locked = false
+        }
+
+        fun lock() {
+            while (locked) {
+                Thread.sleep(50)
+            }
+            locked = true
+        }
+    }
+
+    var state = State()
 
 
     private val textWatcher: TextWatcher = object : TextWatcher {
         override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
         override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
         override fun afterTextChanged(s: Editable) {
-            saveExchangeRate()
-            convert()
+            convert(state)
         }
     }
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val czkView: EditText = findViewById(R.id.editTextCzk)
-        val eurView: EditText = findViewById(R.id.editTextEur)
-        val currencySpinner: Spinner = findViewById(R.id.currencySpinner)
-        val roundUpSwitchView: SwitchMaterial = findViewById(R.id.round_up_switch)
-        roundUpSwitchView.setOnClickListener {
-            convert()
-            saveExchangeRate()
+        val upperEditText: EditText = findViewById(R.id.editTextUpper)
+        val upperEditTextLayout: TextInputLayout = findViewById(R.id.editTextUpperLayout)
+        val lowerEditTextLayout: TextInputLayout = findViewById(R.id.editTextLowerLayout)
+        val lowerEditText: EditText = findViewById(R.id.editTextLower)
+
+        val leftCurrencySpinner: Spinner = findViewById(R.id.upperCurrencySpinner)
+        leftCurrencySpinner.setSelection(0)
+        val rightCurrencySpinner: Spinner = findViewById(R.id.lowerCurrencySpinner)
+        rightCurrencySpinner.setSelection(1)
+
+        val exchangeArrows: ImageButton = findViewById(R.id.exchangeArrows)
+
+        loadExchangeRates(state) // Load locally stored rates
+        // Check for internet connectivity
+        if (isNetworkAvailable(this)) {
+            runBlocking {
+                launch { getOnlineRates(state) }
+            }
         }
 
-        val sharedPreferences: SharedPreferences =
-            this.getSharedPreferences("ConverterPrefs", Context.MODE_PRIVATE)
-
-        // Retrieving the number from SharedPreferences, if not found return default value
-        exchangeRate = sharedPreferences.getFloat("exchangeRate", exchangeRate)
-        exchangeRate = getRate()  // try to get online data if not found return default value
 
 
-        val exchangeRateView: TextView =
-            findViewById(R.id.exchangeRateTextView) // set the exchange rate textView
-        exchangeRateView.text =
-            String.format(getString(R.string.default_exchange_rate), exchangeRate)
-
-        czkView.onFocusChangeListener = OnFocusChangeListener { _, b ->
+        upperEditText.onFocusChangeListener = OnFocusChangeListener { _, b ->
             if (b) {
-                eurView.removeTextChangedListener(textWatcher)
-                czkView.addTextChangedListener(textWatcher)
+                lowerEditText.removeTextChangedListener(textWatcher)
+                upperEditText.addTextChangedListener(textWatcher)
             }
         }
-        eurView.onFocusChangeListener = OnFocusChangeListener { _, a ->
+        lowerEditText.onFocusChangeListener = OnFocusChangeListener { _, a ->
             if (a) {
-                czkView.removeTextChangedListener(textWatcher)
-                eurView.addTextChangedListener(textWatcher)
+                upperEditText.removeTextChangedListener(textWatcher)
+                lowerEditText.addTextChangedListener(textWatcher)
             }
         }
-        czkView.requestFocus()
+        upperEditText.requestFocus()
 
-        currencySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+        leftCurrencySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
                 parent: AdapterView<*>?, view: View?, position: Int, id: Long
             ) {
-                val selectedCurrency = parent?.getItemAtPosition(position).toString()
+                state.upperSelection = parent?.getItemAtPosition(position).toString()
                 // Use the selectedCurrency value to update your UI or perform other actions
+                upperEditTextLayout.hint = state.upperSelection
+                convert(state)
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {
-                currencySpinner.setSelection(0)
-
+                leftCurrencySpinner.setSelection(0)
             }
         }
-    }
+        rightCurrencySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: AdapterView<*>?, view: View?, position: Int, id: Long
+            ) {
+                state.lowerSelection = parent?.getItemAtPosition(position).toString()
+                // Use the selectedCurrency value to update your UI or perform other actions
+                lowerEditTextLayout.hint = state.lowerSelection
+                convert(state)
+            }
 
-    @Suppress("DEPRECATION")
-    private fun isNetworkAvailable(): Boolean {
-        val connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
-        val activeNetworkInfo = connectivityManager.activeNetworkInfo
-        return (activeNetworkInfo != null) && activeNetworkInfo.isConnected
-    }
-
-
-    private fun getRate(): Float {
-
-        if (!isNetworkAvailable()) {
-            Toast.makeText(applicationContext, "No internet connection", Toast.LENGTH_LONG).show()
-            return exchangeRate
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                rightCurrencySpinner.setSelection(1)
+            }
         }
 
+        exchangeArrows.setOnClickListener {
+            val tmp = rightCurrencySpinner.selectedItemId.toInt()
+            rightCurrencySpinner.setSelection(leftCurrencySpinner.selectedItemId.toInt())
+            leftCurrencySpinner.setSelection(tmp)
+        }
+    }
+
+    private fun isNetworkAvailable(context: Context): Boolean {
+        val connectivityManager =
+            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return activeNetwork.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+
+    // check if internet is available beforehand
+    // tries to get exchange rate in the following order: last stored locally, online, some default value
+    private fun getOnlineRates(state: State) {
         val client = OkHttpClient()
         val request = Request.Builder()
             .url("https://openexchangerates.org/api/latest.json?app_id=bc4c542583c2493a92e07d2fc1f3c48b")
@@ -123,12 +175,16 @@ class MainActivity : AppCompatActivity() {
                 if (responseData != null) {
                     val jsonObject = JSONObject(responseData)
                     val ratesObject = jsonObject.getJSONObject("rates")
-                    val czkValue = ratesObject.getDouble("CZK")
-                    val eurValue = ratesObject.getDouble("EUR")
 
-                    exchangeRate = ((1 / eurValue) * czkValue).toFloat()
+                    state.lock()
+                    for (key in ratesObject.keys()) {
+                        state.ratesMap[key] = ratesObject.getDouble(key)
+                    }
+                    saveExchangeRates(ratesObject)
+                    state.unlock()
+
                 } else {
-                    Log.e("API Response", "Null has been returned")
+                    Log.e("API Response", "Null has been returned as a response")
                 }
             }
 
@@ -136,41 +192,91 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(applicationContext, "API call failure", Toast.LENGTH_LONG).show()
             }
         })
-        return exchangeRate
+        updateTimeAgo(System.currentTimeMillis())
     }
 
-    fun saveExchangeRate() {
+    // stores all the rates
+    fun saveExchangeRates(rates: JSONObject) {
         val sharedPreferences: SharedPreferences =
             this.getSharedPreferences("ConverterPrefs", Context.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
-        editor.putFloat("exchangeRate", exchangeRate) // Saving a number to SharedPreferences
+        // Saving a number to SharedPreferences
+        for (key in rates.keys()) {
+            editor.putFloat(key, rates.getDouble(key).toFloat())
+        }
+        val timeInMillis = System.currentTimeMillis()
+        editor.putLong("lastUpdated", timeInMillis)
         editor.apply()
     }
 
-    fun convert() {
+    // tries to get the last stored exchange rate if not returns some default rate
+    private fun loadExchangeRates(state: State): Double {
+        val sharedPreferences: SharedPreferences =
+            this.getSharedPreferences("ConverterPrefs", Context.MODE_PRIVATE)
 
-        val exchangeRateView: TextView = findViewById(R.id.exchangeRateTextView)
-        exchangeRateView.text =
-            String.format(getString(R.string.default_exchange_rate), exchangeRate)
-
-        val czkView: EditText = findViewById(R.id.editTextCzk)
-        val eurView: EditText = findViewById(R.id.editTextEur)
-        val roundUpSwitchView: SwitchMaterial = findViewById(R.id.round_up_switch)
-        val czkVal = czkView.text.toString().toDoubleOrNull()
-        val eurVal = eurView.text.toString().toDoubleOrNull()
-
-        if (czkView.isFocused && czkVal != null) {
-            eurView.setText(String.format("%.2f", (czkVal / exchangeRate)))
-        } else if (eurView.isFocused && eurVal != null) {
-            if (roundUpSwitchView.isChecked) {
-                czkView.setText(String.format("%.0f", kotlin.math.ceil(eurVal * exchangeRate)))
-            } else {
-                czkView.setText(String.format("%.2f", eurVal * exchangeRate))
+        updateTimeAgo(sharedPreferences.getLong("lastUpdated", -1L))
+        state.lock()
+        for ((key, value) in sharedPreferences.all) {
+            if (value is Float) {
+                state.ratesMap[key] = value.toDouble()
             }
-        } else if (czkVal == null) {
-            eurView.setText("")
-        } else if (eurVal == null) {
-            czkView.setText("")
+        }
+        state.unlock()
+
+        state.calculateExchangeRate()
+        return state.exchangeRate
+    }
+
+    @SuppressLint("DefaultLocale")
+    fun convert(state: State) {
+
+        val upperView: EditText = findViewById(R.id.editTextUpper)
+        val lowerView: EditText = findViewById(R.id.editTextLower)
+        val upperVal = upperView.text.toString().toDoubleOrNull()
+        val lowerVal = lowerView.text.toString().toDoubleOrNull()
+        if (upperVal == null && lowerVal == null) {
+            return
+        }
+
+        state.calculateExchangeRate()
+
+        if (upperView.isFocused && upperVal != null) {
+            lowerView.setText(String.format("%.2f", upperVal / state.exchangeRate))
+        } else if (lowerView.isFocused && lowerVal != null) {
+            upperView.setText(String.format("%.2f", lowerVal * state.exchangeRate))
+        } else if (upperVal == null) {
+            lowerView.setText("")
+        } else if (lowerVal == null) {
+            upperView.setText("")
+        }
+
+    }
+
+    // format and display timeInMillis
+    private fun updateTimeAgo(timeInMillis: Long) {
+
+        runOnUiThread {
+            val lastUpdatedView: TextView = findViewById(R.id.textViewUpdated)
+            if (timeInMillis == -1L) {
+                lastUpdatedView.text = getString(R.string.updated_never)
+                return@runOnUiThread
+            }
+
+            val currentTime = System.currentTimeMillis()
+            val timeDifference = currentTime - timeInMillis
+
+            val seconds = TimeUnit.MILLISECONDS.toSeconds(timeDifference)
+            val minutes = TimeUnit.MILLISECONDS.toMinutes(timeDifference)
+            val hours = TimeUnit.MILLISECONDS.toHours(timeDifference)
+            val days = TimeUnit.MILLISECONDS.toDays(timeDifference)
+
+            lastUpdatedView.text = when {
+                seconds < 1 -> "updated just now"
+                seconds < 60 -> "updated $seconds seconds ago"
+                minutes < 60 -> "updated $minutes minutes ago"
+                hours < 24 -> "updated $hours hours ago"
+                else -> "updated $days days ago"
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -9,29 +10,51 @@
 
 
     <Spinner
-        android:id="@+id/currencySpinner"
+        android:id="@+id/upperCurrencySpinner"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
+        android:layout_margin="20dp"
         android:entries="@array/currency_codes"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@id/round_up_switch"/>
+        app:layout_constraintTop_toBottomOf="@id/editTextLowerLayout" />
+
+    <ImageButton
+        android:id="@+id/exchangeArrows"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/arrow_description"
+        app:layout_constraintBottom_toBottomOf="@id/upperCurrencySpinner"
+        app:layout_constraintEnd_toStartOf="@id/lowerCurrencySpinner"
+        app:layout_constraintStart_toEndOf="@id/upperCurrencySpinner"
+        app:layout_constraintTop_toBottomOf="@id/upperCurrencySpinner"
+        app:layout_constraintTop_toTopOf="@id/upperCurrencySpinner"
+        app:srcCompat="@drawable/baseline_compare_arrows_24" />
 
 
-<!--    <com.google.android.material.textview.MaterialTextView-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:text="@string/ver_a_3"-->
-<!--        android:textAlignment="center"-->
-<!--        android:textSize="40sp"-->
-<!--        app:layout_constraintBottom_toBottomOf="parent"-->
-<!--        app:layout_constraintEnd_toEndOf="parent"-->
-<!--        app:layout_constraintStart_toStartOf="parent"-->
-<!--        app:layout_constraintTop_toBottomOf="@id/editTextEurLayout" />-->
+    <Spinner
+        android:id="@+id/lowerCurrencySpinner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
+        android:entries="@array/currency_codes"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/editTextLowerLayout" />
+
+
+    <!--    <com.google.android.material.textview.MaterialTextView-->
+    <!--        android:layout_width="match_parent"-->
+    <!--        android:layout_height="wrap_content"-->
+    <!--        android:text="@string/ver_a_3"-->
+    <!--        android:textAlignment="center"-->
+    <!--        android:textSize="40sp"-->
+    <!--        app:layout_constraintBottom_toBottomOf="parent"-->
+    <!--        app:layout_constraintEnd_toEndOf="parent"-->
+    <!--        app:layout_constraintStart_toStartOf="parent"-->
+    <!--        app:layout_constraintTop_toBottomOf="@id/editTextEurLayout" />-->
 
     <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/editTextCzkLayout"
+        android:id="@+id/editTextUpperLayout"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -44,7 +67,7 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/editTextCzk"
+            android:id="@+id/editTextUpper"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="numberDecimal"
@@ -55,7 +78,7 @@
 
 
     <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/editTextEurLayout"
+        android:id="@+id/editTextLowerLayout"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -64,10 +87,10 @@
         android:padding="10dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/editTextCzkLayout">
+        app:layout_constraintTop_toBottomOf="@id/editTextUpperLayout">
 
         <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/editTextEur"
+            android:id="@+id/editTextLower"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="numberDecimal"
@@ -76,26 +99,17 @@
 
     </com.google.android.material.textfield.TextInputLayout>
 
-    <TextView
-        android:id="@+id/exchangeRateTextView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="20dp"
-        android:text="@string/default_exchange_rate"
-        android:textAlignment="center"
-        android:textColor="@color/Grey"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
 
-    <com.google.android.material.switchmaterial.SwitchMaterial
-        android:id="@+id/round_up_switch"
+    <TextView
+        android:id="@+id/textViewUpdated"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="20dp"
-        android:checked="false"
-        android:text="@string/round_up"
+        android:text="updated never"
+        android:textColor="@color/Grey"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/editTextEurLayout" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
