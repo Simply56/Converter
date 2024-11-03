@@ -245,9 +245,9 @@ class MainActivity : AppCompatActivity() {
         } else if (lowerView.isFocused && lowerVal != null) {
             upperView.setText(String.format("%.2f", lowerVal * state.exchangeRate))
         } else if (upperVal == null) {
-            lowerView.setText("")
+            lowerView.text.clear()
         } else if (lowerVal == null) {
-            upperView.setText("")
+            upperView.text.clear()
         }
 
     }
