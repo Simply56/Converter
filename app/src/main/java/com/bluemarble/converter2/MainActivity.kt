@@ -79,22 +79,35 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        val leftCurrencySpinner: Spinner = findViewById(R.id.upperCurrencySpinner)
+        val rightCurrencySpinner: Spinner = findViewById(R.id.lowerCurrencySpinner)
+
+        val sharedPreferences: SharedPreferences =
+            this.getSharedPreferences("ConverterPrefs", Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        editor.putInt("upperSelection", leftCurrencySpinner.selectedItemPosition)
+        editor.putInt("lowerSelection", rightCurrencySpinner.selectedItemPosition)
+        editor.apply()
+
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val upperEditText: EditText = findViewById(R.id.editTextUpper)
         val upperEditTextLayout: TextInputLayout = findViewById(R.id.editTextUpperLayout)
         val lowerEditTextLayout: TextInputLayout = findViewById(R.id.editTextLowerLayout)
         val lowerEditText: EditText = findViewById(R.id.editTextLower)
+        val upperEditText: EditText = findViewById(R.id.editTextUpper)
+
 
         val leftCurrencySpinner: Spinner = findViewById(R.id.upperCurrencySpinner)
-        leftCurrencySpinner.setSelection(0)
         val rightCurrencySpinner: Spinner = findViewById(R.id.lowerCurrencySpinner)
-        rightCurrencySpinner.setSelection(1)
 
 
-        loadExchangeRates(state) // Load locally stored rates
+        loadData(state) // Load locally stored rates
         // Check for internet connectivity
         if (isNetworkAvailable(this)) {
             runBlocking {
@@ -219,9 +232,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     // tries to get the last stored exchange rate if not returns some default rate
-    private fun loadExchangeRates(state: State): Double {
+    private fun loadData(state: State) {
         val sharedPreferences: SharedPreferences =
             this.getSharedPreferences("ConverterPrefs", Context.MODE_PRIVATE)
+
+        val leftCurrencySpinner: Spinner = findViewById(R.id.upperCurrencySpinner)
+        val rightCurrencySpinner: Spinner = findViewById(R.id.lowerCurrencySpinner)
+
+        leftCurrencySpinner.setSelection(sharedPreferences.getInt("upperSelection", 0))
+        rightCurrencySpinner.setSelection(sharedPreferences.getInt("lowerSelection", 1))
 
         updateTimeAgo(sharedPreferences.getLong("lastUpdated", -1L))
         state.lock()
@@ -233,7 +252,8 @@ class MainActivity : AppCompatActivity() {
         state.unlock()
 
         state.calculateExchangeRate()
-        return state.exchangeRate
+
+
     }
 
     @SuppressLint("DefaultLocale")
