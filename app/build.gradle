@@ -11,8 +11,8 @@ android {
         applicationId "com.bluemarble.converter2"
         minSdk 24
         targetSdk 34
-        versionCode 7
-        versionName "7.0"
+        versionCode 8
+        versionName "multicurrency"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

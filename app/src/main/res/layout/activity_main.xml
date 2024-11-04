@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-
+    android:padding="5dp"
     tools:context="com.bluemarble.converter2.MainActivity">
 
 
@@ -14,9 +14,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="20dp"
+        android:background="@android:color/transparent"
+        android:drawableEnd="@null"
         android:entries="@array/currency_codes"
+        android:textAlignment="textStart"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/editTextLowerLayout" />
+
 
     <ImageButton
         android:id="@+id/exchangeArrows"
@@ -37,21 +41,24 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="20dp"
+        android:background="@android:color/transparent"
+
         android:entries="@array/currency_codes"
+        android:textAlignment="textEnd"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/editTextLowerLayout" />
 
 
-    <!--    <com.google.android.material.textview.MaterialTextView-->
-    <!--        android:layout_width="match_parent"-->
-    <!--        android:layout_height="wrap_content"-->
-    <!--        android:text="@string/ver_a_3"-->
-    <!--        android:textAlignment="center"-->
-    <!--        android:textSize="40sp"-->
-    <!--        app:layout_constraintBottom_toBottomOf="parent"-->
-    <!--        app:layout_constraintEnd_toEndOf="parent"-->
-    <!--        app:layout_constraintStart_toStartOf="parent"-->
-    <!--        app:layout_constraintTop_toBottomOf="@id/editTextEurLayout" />-->
+    <com.google.android.material.textview.MaterialTextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/ver_a_3"
+        android:textAlignment="center"
+        android:textSize="40sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/editTextLowerLayout" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/editTextUpperLayout"
@@ -104,7 +111,6 @@
         android:id="@+id/textViewUpdated"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="20dp"
         android:text="@string/updated_never"
         android:textColor="@color/Grey"
         app:layout_constraintEnd_toEndOf="parent"

@@ -11,6 +11,8 @@ import android.text.TextWatcher
 import android.util.Log
 import android.view.View
 import android.view.View.OnFocusChangeListener
+import android.view.animation.Animation
+import android.view.animation.AnimationUtils
 import android.widget.AdapterView
 import android.widget.EditText
 import android.widget.ImageButton
@@ -30,6 +32,7 @@ import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
+
 // VERCA <3
 
 
@@ -48,7 +51,7 @@ class MainActivity : AppCompatActivity() {
             val upperValue = ratesMap[upperSelection]
             val lowerValue = ratesMap[lowerSelection]
             if (upperValue != null && lowerValue != null) {
-                exchangeRate = ((1 / lowerValue) * upperValue)
+                exchangeRate = upperValue / lowerValue
             }
             unlock()
         }
@@ -90,7 +93,6 @@ class MainActivity : AppCompatActivity() {
         val rightCurrencySpinner: Spinner = findViewById(R.id.lowerCurrencySpinner)
         rightCurrencySpinner.setSelection(1)
 
-        val exchangeArrows: ImageButton = findViewById(R.id.exchangeArrows)
 
         loadExchangeRates(state) // Load locally stored rates
         // Check for internet connectivity
@@ -120,7 +122,8 @@ class MainActivity : AppCompatActivity() {
             override fun onItemSelected(
                 parent: AdapterView<*>?, view: View?, position: Int, id: Long
             ) {
-                state.upperSelection = parent?.getItemAtPosition(position).toString()
+                state.upperSelection =
+                    parent?.getItemAtPosition(position).toString().slice((IntRange(0, 2)))
                 // Use the selectedCurrency value to update your UI or perform other actions
                 upperEditTextLayout.hint = state.upperSelection
                 convert(state)
@@ -134,7 +137,8 @@ class MainActivity : AppCompatActivity() {
             override fun onItemSelected(
                 parent: AdapterView<*>?, view: View?, position: Int, id: Long
             ) {
-                state.lowerSelection = parent?.getItemAtPosition(position).toString()
+                state.lowerSelection =
+                    parent?.getItemAtPosition(position).toString().slice((IntRange(0, 2)))
                 // Use the selectedCurrency value to update your UI or perform other actions
                 lowerEditTextLayout.hint = state.lowerSelection
                 convert(state)
@@ -145,7 +149,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        exchangeArrows.setOnClickListener {
+        val exchangeArrows: ImageButton = findViewById(R.id.exchangeArrows)
+        val animation: Animation = AnimationUtils.loadAnimation(this, R.anim.scale_animation)
+
+
+        exchangeArrows.setOnClickListener { v ->
+            v.startAnimation(animation)
             val tmp = rightCurrencySpinner.selectedItemId.toInt()
             rightCurrencySpinner.setSelection(leftCurrencySpinner.selectedItemId.toInt())
             leftCurrencySpinner.setSelection(tmp)
