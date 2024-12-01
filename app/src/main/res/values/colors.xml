@@ -3,11 +3,20 @@
     <color name="primaryColor">#00b2d2</color>
     <color name="primaryLightColor">#61e4ff</color>
     <color name="primaryDarkColor">#0082a1</color>
-    <color name="secondaryColor">#00b2d2</color>
+    <color name="secondaryColor">#292e4d</color>
     <color name="secondaryLightColor">#ab76d7</color>
     <color name="secondaryDarkColor">#4b1e76</color>
     <color name="primaryTextColor">#000000</color>
     <color name="secondaryTextColor">#ffffff</color>
     <color name="Grey">#777777</color>
+
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <color name="window_background">#FFFFFFFF</color>
+    <color name="io_background">#F9F9F9</color>
+    <color name="red">#d14f4f</color>
+
 
 </resources>

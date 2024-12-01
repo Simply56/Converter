@@ -20,9 +20,9 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
@@ -110,8 +110,8 @@ class MainActivity : AppCompatActivity() {
         loadData(state) // Load locally stored rates
         // Check for internet connectivity
         if (isNetworkAvailable(this)) {
-            runBlocking {
-                launch { getOnlineRates(state) }
+            lifecycleScope.launch {
+                getOnlineRates(state) // Run asynchronously without blocking the main thread
             }
         }
 
@@ -258,6 +258,53 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("DefaultLocale")
     fun convert(state: State) {
+        state.calculateExchangeRate()
+        val currencyMap = hashMapOf(
+            "USD" to "$",
+            "EUR" to "€",
+            "JPY" to "¥",
+            "GBP" to "£",
+            "AUD" to "A$",
+            "CAD" to "C$",
+            "CHF" to "CHF",
+            "CNY" to "¥",
+            "SEK" to "kr",
+            "NZD" to "NZ$",
+            "MXN" to "$",
+            "SGD" to "S$",
+            "HKD" to "HK$",
+            "NOK" to "kr",
+            "KRW" to "₩",
+            "TRY" to "₺",
+            "INR" to "₹",
+            "RUB" to "₽",
+            "ZAR" to "R",
+            "BRL" to "R$",
+            "TWD" to "NT$",
+            "PLN" to "zł",
+            "THB" to "฿",
+            "CZK" to "Kč",
+            "DKK" to "kr",
+            "HUF" to "Ft",
+            "ILS" to "₪",
+            "MYR" to "RM",
+            "PHP" to "₱",
+            "IDR" to "Rp",
+            "PKR" to "₨",
+            "VND" to "₫",
+            "NGN" to "₦",
+            "EGP" to "E£",
+            "KZT" to "₸",
+            "UAH" to "₴"
+        )
+        val exchangeRateText: TextView = findViewById(R.id.exchangeRateText)
+        exchangeRateText.text = getString(
+            R.string.exchange_rate_format,
+            currencyMap[state.upperSelection],
+            String.format("%.5f", 1 / state.exchangeRate),
+            currencyMap[state.lowerSelection]
+        )
+
 
         val upperView: EditText = findViewById(R.id.editTextUpper)
         val lowerView: EditText = findViewById(R.id.editTextLower)
@@ -267,7 +314,6 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        state.calculateExchangeRate()
 
         if (upperView.isFocused && upperVal != null) {
             lowerView.setText(String.format("%.2f", upperVal / state.exchangeRate))

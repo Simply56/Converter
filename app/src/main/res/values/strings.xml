@@ -3,12 +3,10 @@
     <string name="foreign_currency">CZK</string>
     <string name="eur">EUR</string>
     <string name="convert">Convert</string>
-    <string name="default_exchange_rate">1€ = %1$.5f</string>
-    <string name="round_up">Round Up CZK</string>
     <string name="ver_a_3"><![CDATA[Verča <3]]></string>
-    <string name="empty_string" />
     <string name="arrow_description">two arrows used to symbolize exchange</string>
     <string name="updated_never">never updated</string>
+    <string name="exchange_rate_format">1 %1$s = %2$s %3$s</string>
     <string-array name="currency_codes">
         <item>CZK 🇨🇿</item>
         <item>EUR 🇪🇺</item>
@@ -22,8 +20,6 @@
         <item>CNY 🇨🇳</item>
         <item>HKD 🇭🇰</item>
         <item>SGD 🇸🇬</item>
-
-
         <!--        <item>AED</item>-->
         <!--        <item>AFN</item>-->
         <!--        <item>ALL</item>-->
