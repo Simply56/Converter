@@ -9,10 +9,10 @@ android {
 
     defaultConfig {
         applicationId "com.bluemarble.converter2"
-        minSdk 24
+        minSdk 26
         targetSdk 34
-        versionCode 11
-        versionName "multicurrency"
+        versionCode 12
+        versionName "Multicurrency Calculator"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -34,6 +34,7 @@ android {
 }
 
 dependencies {
+    implementation 'net.objecthunter:exp4j:0.4.8' // string to math expression
     implementation 'com.squareup.okhttp3:okhttp:4.9.2' // added
     implementation 'com.squareup.okio:okio:2.10.0' // added
 
@@ -41,6 +42,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'com.google.android.material:material:1.12.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.compose.ui:ui-android:1.7.5'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'

@@ -9,11 +9,14 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.view.KeyEvent
 import android.view.View
 import android.view.View.OnFocusChangeListener
+import android.view.WindowManager
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.widget.AdapterView
+import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.Spinner
@@ -23,6 +26,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.launch
+import net.objecthunter.exp4j.ExpressionBuilder
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
@@ -43,6 +47,7 @@ class MainActivity : AppCompatActivity() {
         var lowerSelection: String = "EUR"
         var ratesMap = hashMapOf("EUR" to 1.0, "CZK" to 25.0)
         var exchangeRate: Double = 25.0 // default value when app is first installed
+        var answer: Double = 0.0
 
         private var locked: Boolean = false
 
@@ -96,12 +101,52 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN)
+
 
         val upperEditTextLayout: TextInputLayout = findViewById(R.id.editTextUpperLayout)
         val lowerEditTextLayout: TextInputLayout = findViewById(R.id.editTextLowerLayout)
         val lowerEditText: EditText = findViewById(R.id.editTextLower)
         val upperEditText: EditText = findViewById(R.id.editTextUpper)
 
+        /////////////////////////////////
+        // keyboard setup
+        val buttons: Array<Button> = arrayOf(
+            findViewById(R.id.button_delete),
+            findViewById(R.id.button_bracket_l),
+            findViewById(R.id.button_bracket_r),
+            findViewById(R.id.button_division),
+            findViewById(R.id.button_multiply),
+            findViewById(R.id.button_subtraction),
+            findViewById(R.id.button_addition),
+            findViewById(R.id.button_equals),
+            findViewById(R.id.button_answer),
+            findViewById(R.id.button_dot),
+            findViewById(R.id.button_0),
+            findViewById(R.id.button_1),
+            findViewById(R.id.button_2),
+            findViewById(R.id.button_3),
+            findViewById(R.id.button_4),
+            findViewById(R.id.button_5),
+            findViewById(R.id.button_6),
+            findViewById(R.id.button_7),
+            findViewById(R.id.button_8),
+            findViewById(R.id.button_9)
+        )
+        for (b in buttons) {
+            b.setOnClickListener { press(b) }
+        }
+
+        findViewById<Button>(R.id.button_delete).setOnLongClickListener {
+            lowerEditText.text.clear()
+            upperEditText.text.clear()
+            true
+        }
+        /////////////////////////////////
+
+
+        lowerEditText.showSoftInputOnFocus = false
+        upperEditText.showSoftInputOnFocus = false
 
         val leftCurrencySpinner: Spinner = findViewById(R.id.upperCurrencySpinner)
         val rightCurrencySpinner: Spinner = findViewById(R.id.lowerCurrencySpinner)
@@ -308,8 +353,12 @@ class MainActivity : AppCompatActivity() {
 
         val upperView: EditText = findViewById(R.id.editTextUpper)
         val lowerView: EditText = findViewById(R.id.editTextLower)
-        val upperVal = upperView.text.toString().toDoubleOrNull()
-        val lowerVal = lowerView.text.toString().toDoubleOrNull()
+
+        upperView.showSoftInputOnFocus = false
+        lowerView.showSoftInputOnFocus = false
+
+        val upperVal: Double? = evaluateExpression(upperView.text.toString())
+        val lowerVal: Double? = evaluateExpression(lowerView.text.toString())
         if (upperVal == null && lowerVal == null) {
             return
         }
@@ -354,4 +403,87 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    private fun evaluateExpression(expression: String): Double? {
+        return try {
+            val exp = ExpressionBuilder(expression).build()
+            exp.evaluate()
+        } catch (e: Exception) {
+            return null
+        }
+    }
+
+    private fun moveCursorToEnd(editText: EditText) {
+        val textLength = editText.text.length
+        editText.setSelection(textLength)
+    }
+
+    private fun focusedView(): EditText? {
+        val lowerEditText: EditText = findViewById(R.id.editTextLower)
+        val upperEditText: EditText = findViewById(R.id.editTextUpper)
+        if (lowerEditText.hasFocus()) {
+            return lowerEditText
+        } else if (upperEditText.hasFocus()) {
+            return upperEditText
+        }
+        return null
+    }
+
+
+    private fun press(b: Button) {
+        val focusedEditText: EditText = focusedView() ?: return
+        val buttonKeyMap: HashMap<String, Int> = hashMapOf(
+            "del" to KeyEvent.KEYCODE_DEL,
+            "(" to KeyEvent.KEYCODE_NUMPAD_LEFT_PAREN,
+            ")" to KeyEvent.KEYCODE_NUMPAD_RIGHT_PAREN,
+            "÷" to KeyEvent.KEYCODE_SLASH,
+            "×" to KeyEvent.KEYCODE_NUMPAD_MULTIPLY,
+            "-" to KeyEvent.KEYCODE_MINUS,
+            "+" to KeyEvent.KEYCODE_PLUS,
+            "." to KeyEvent.KEYCODE_PERIOD,
+            "0" to KeyEvent.KEYCODE_0,
+            "1" to KeyEvent.KEYCODE_1,
+            "2" to KeyEvent.KEYCODE_2,
+            "3" to KeyEvent.KEYCODE_3,
+            "4" to KeyEvent.KEYCODE_4,
+            "5" to KeyEvent.KEYCODE_5,
+            "6" to KeyEvent.KEYCODE_6,
+            "7" to KeyEvent.KEYCODE_7,
+            "8" to KeyEvent.KEYCODE_8,
+            "9" to KeyEvent.KEYCODE_9
+        )
+
+        if (b.text.toString() == "ans") {
+            focusedEditText.text.append(state.answer.toString())
+            return
+        }
+        if (b.text.toString() == "=") {
+            val tmp = evaluateExpression(focusedEditText.text.toString())
+            if (tmp != null) {
+                state.answer = tmp
+                focusedEditText.setText("$tmp")
+                moveCursorToEnd(focusedEditText)
+            }
+            return
+        }
+        if (focusedEditText.text.isNotEmpty()) {
+            if ((focusedEditText.text.last() == '/' && b.text[0] == '÷') ||
+                (focusedEditText.text.last() == '*' && b.text[0] == '×') ||
+                (focusedEditText.text.last() == '+' && b.text[0] == '+')
+            ) {
+                return
+            }
+
+        }
+        simulateKeyPress(focusedEditText, buttonKeyMap[b.text.toString()]!!)
+    }
+
+    private fun simulateKeyPress(editText: EditText, keyCode: Int) {
+        val eventDown = KeyEvent(KeyEvent.ACTION_DOWN, keyCode)
+        val eventUp = KeyEvent(KeyEvent.ACTION_UP, keyCode)
+        editText.dispatchKeyEvent(eventDown)
+        editText.dispatchKeyEvent(eventUp)
+    }
 }
+
+

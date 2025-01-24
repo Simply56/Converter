@@ -12,10 +12,10 @@
 
         <item name="buttonTextColor">@color/white</item>
         <item name="buttonSecondaryColor">@color/secondaryLightColor</item>
+        <item name="layoutBackgroundColor">@color/black</item>
 
 
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor" >?attr/colorPrimary</item>
+
         <!-- Customize your theme here. -->
     </style>
 </resources>

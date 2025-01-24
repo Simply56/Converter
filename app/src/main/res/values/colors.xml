@@ -16,7 +16,7 @@
 
     <color name="window_background">#FFFFFFFF</color>
     <color name="io_background">#F9F9F9</color>
-    <color name="red">#d14f4f</color>
+    <color name="red">#FF5449</color>
 
 
 </resources>
