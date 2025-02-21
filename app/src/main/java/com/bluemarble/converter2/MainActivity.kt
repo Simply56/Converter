@@ -40,6 +40,10 @@ import java.util.concurrent.TimeUnit
 // VERCA <3
 
 
+import org.xmlpull.v1.XmlPullParser
+import org.xmlpull.v1.XmlPullParserFactory
+import java.io.StringReader
+
 class MainActivity : AppCompatActivity() {
 
     class State {
@@ -219,47 +223,78 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // check if internet is available beforehand
+    // tries to get exchange rate in the following order: last stored locally, online, some default value
+    private fun getOnlineRates(state: State) {
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onResponse(call: Call, response: Response) {
+                try {
+                    val responseData = response.body?.string()
+                    if (responseData != null) {
+                        // Create XML pull parser
+                        val factory = XmlPullParserFactory.newInstance()
+                        val parser = factory.newPullParser()
+                        parser.setInput(StringReader(responseData))
+
+                        var eventType = parser.eventType
+                        state.lock()
+
+                        // Initialize EUR as base currency with rate 1.0
+                        state.ratesMap["EUR"] = 1.0
+
+                        // Parse XML
+                        while (eventType != XmlPullParser.END_DOCUMENT) {
+                            if (eventType == XmlPullParser.START_TAG && parser.name == "Cube") {
+                                val currency = parser.getAttributeValue(null, "currency")
+                                val rate = parser.getAttributeValue(null, "rate")
+
+                                if (currency != null && rate != null) {
+                                    state.ratesMap[currency] = rate.toDouble()
+                                }
+                            }
+                            eventType = parser.next()
+                        }
+
+                        // Save the rates to SharedPreferences
+                        val ratesObject = JSONObject()
+                        for ((key, value) in state.ratesMap) {
+                            ratesObject.put(key, value)
+                        }
+                        saveExchangeRates(ratesObject)
+                        state.unlock()
+
+                    } else {
+                        Log.e("API Response", "Null has been returned as a response")
+                    }
+                } catch (e: Exception) {
+                    Log.e("XML Parsing", "Error parsing XML response", e)
+                    runOnUiThread {
+                        Toast.makeText(applicationContext, "Error parsing exchange rates", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+
+            override fun onFailure(call: Call, e: IOException) {
+                runOnUiThread {
+                    Toast.makeText(applicationContext, "Failed to fetch exchange rates", Toast.LENGTH_LONG).show()
+                }
+            }
+        })
+        updateTimeAgo(System.currentTimeMillis())
+    }
+
+
     private fun isNetworkAvailable(context: Context): Boolean {
         val connectivityManager =
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val network = connectivityManager.activeNetwork ?: return false
         val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
         return activeNetwork.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-    }
-
-
-    // check if internet is available beforehand
-    // tries to get exchange rate in the following order: last stored locally, online, some default value
-    private fun getOnlineRates(state: State) {
-        val client = OkHttpClient()
-        val request = Request.Builder()
-            .url("https://openexchangerates.org/api/latest.json?app_id=bc4c542583c2493a92e07d2fc1f3c48b")
-            .build()
-
-        client.newCall(request).enqueue(object : Callback {
-            override fun onResponse(call: Call, response: Response) {
-                val responseData = response.body?.string()
-                if (responseData != null) {
-                    val jsonObject = JSONObject(responseData)
-                    val ratesObject = jsonObject.getJSONObject("rates")
-
-                    state.lock()
-                    for (key in ratesObject.keys()) {
-                        state.ratesMap[key] = ratesObject.getDouble(key)
-                    }
-                    saveExchangeRates(ratesObject)
-                    state.unlock()
-
-                } else {
-                    Log.e("API Response", "Null has been returned as a response")
-                }
-            }
-
-            override fun onFailure(call: Call, e: IOException) {
-                Toast.makeText(applicationContext, "API call failure", Toast.LENGTH_LONG).show()
-            }
-        })
-        updateTimeAgo(System.currentTimeMillis())
     }
 
     // stores all the rates
