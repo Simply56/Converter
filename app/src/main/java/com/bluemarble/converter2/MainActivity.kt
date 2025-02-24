@@ -37,9 +37,6 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 
-// VERCA <3
-
-
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.StringReader
@@ -48,10 +45,28 @@ class MainActivity : AppCompatActivity() {
 
     class State {
         var upperSelection: String = "CZK"
+            set(value) {
+                lock()
+                if (ratesMap.containsKey(value)) {
+                    field = value
+                } else {
+                    Log.v("Selection", "upperSelection cannot be $value")
+                }
+                unlock()
+            }
         var lowerSelection: String = "EUR"
+            set(value) {
+                lock()
+                if (ratesMap.containsKey(value)) {
+                    field = value
+                } else {
+                    Log.v("Selection", "lowerSelection cannot be $value")
+                }
+                unlock()
+            }
         var ratesMap = hashMapOf("EUR" to 1.0, "CZK" to 25.0)
         var exchangeRate: Double = 25.0 // default value when app is first installed
-        var answer: Double = 0.0
+        var calculatedResult: Double = 0.0
 
         private var locked: Boolean = false
 
@@ -113,40 +128,12 @@ class MainActivity : AppCompatActivity() {
         val lowerEditText: EditText = findViewById(R.id.editTextLower)
         val upperEditText: EditText = findViewById(R.id.editTextUpper)
 
-        /////////////////////////////////
-        // keyboard setup
-        val buttons: Array<Button> = arrayOf(
-            findViewById(R.id.button_delete),
-            findViewById(R.id.button_bracket_l),
-            findViewById(R.id.button_bracket_r),
-            findViewById(R.id.button_division),
-            findViewById(R.id.button_multiply),
-            findViewById(R.id.button_subtraction),
-            findViewById(R.id.button_addition),
-            findViewById(R.id.button_equals),
-            findViewById(R.id.button_answer),
-            findViewById(R.id.button_dot),
-            findViewById(R.id.button_0),
-            findViewById(R.id.button_1),
-            findViewById(R.id.button_2),
-            findViewById(R.id.button_3),
-            findViewById(R.id.button_4),
-            findViewById(R.id.button_5),
-            findViewById(R.id.button_6),
-            findViewById(R.id.button_7),
-            findViewById(R.id.button_8),
-            findViewById(R.id.button_9)
-        )
-        for (b in buttons) {
-            b.setOnClickListener { press(b) }
-        }
-
+        initializeCustomKeyboard()
         findViewById<Button>(R.id.button_delete).setOnLongClickListener {
             lowerEditText.text.clear()
             upperEditText.text.clear()
             true
         }
-        /////////////////////////////////
 
 
         lowerEditText.showSoftInputOnFocus = false
@@ -223,13 +210,41 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun initializeCustomKeyboard() {
+        val buttons: Array<Button> = arrayOf(
+            findViewById(R.id.button_delete),
+            findViewById(R.id.button_bracket_l),
+            findViewById(R.id.button_bracket_r),
+            findViewById(R.id.button_division),
+            findViewById(R.id.button_multiply),
+            findViewById(R.id.button_subtraction),
+            findViewById(R.id.button_addition),
+            findViewById(R.id.button_equals),
+            findViewById(R.id.button_answer),
+            findViewById(R.id.button_dot),
+            findViewById(R.id.button_0),
+            findViewById(R.id.button_1),
+            findViewById(R.id.button_2),
+            findViewById(R.id.button_3),
+            findViewById(R.id.button_4),
+            findViewById(R.id.button_5),
+            findViewById(R.id.button_6),
+            findViewById(R.id.button_7),
+            findViewById(R.id.button_8),
+            findViewById(R.id.button_9)
+        )
+        for (b in buttons) {
+            b.setOnClickListener { press(b) }
+        }
+    }
+
     // check if internet is available beforehand
     // tries to get exchange rate in the following order: last stored locally, online, some default value
     private fun getOnlineRates(state: State) {
         val client = OkHttpClient()
-        val request = Request.Builder()
-            .url("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")
-            .build()
+        val request =
+            Request.Builder().url("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")
+                .build()
 
         client.newCall(request).enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
@@ -274,14 +289,18 @@ class MainActivity : AppCompatActivity() {
                 } catch (e: Exception) {
                     Log.e("XML Parsing", "Error parsing XML response", e)
                     runOnUiThread {
-                        Toast.makeText(applicationContext, "Error parsing exchange rates", Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            applicationContext, "Error parsing exchange rates", Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
             }
 
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
-                    Toast.makeText(applicationContext, "Failed to fetch exchange rates", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        applicationContext, "Failed to fetch exchange rates", Toast.LENGTH_LONG
+                    ).show()
                 }
             }
         })
@@ -413,7 +432,6 @@ class MainActivity : AppCompatActivity() {
 
     // format and display timeInMillis
     private fun updateTimeAgo(timeInMillis: Long) {
-
         runOnUiThread {
             val lastUpdatedView: TextView = findViewById(R.id.textViewUpdated)
             if (timeInMillis == -1L) {
@@ -448,12 +466,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun moveCursorToEnd(editText: EditText) {
-        val textLength = editText.text.length
-        editText.setSelection(textLength)
-    }
 
-    private fun focusedView(): EditText? {
+    private fun getFocusedEditText(): EditText? {
         val lowerEditText: EditText = findViewById(R.id.editTextLower)
         val upperEditText: EditText = findViewById(R.id.editTextUpper)
         if (lowerEditText.hasFocus()) {
@@ -465,8 +479,8 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    private fun press(b: Button) {
-        val focusedEditText: EditText = focusedView() ?: return
+    private fun press(button: Button) {
+        val focusedEditText: EditText = getFocusedEditText() ?: return
         val buttonKeyMap: HashMap<String, Int> = hashMapOf(
             "del" to KeyEvent.KEYCODE_DEL,
             "(" to KeyEvent.KEYCODE_NUMPAD_LEFT_PAREN,
@@ -488,36 +502,35 @@ class MainActivity : AppCompatActivity() {
             "9" to KeyEvent.KEYCODE_9
         )
 
-        if (b.text.toString() == "ans") {
-            focusedEditText.text.append(state.answer.toString())
-            return
-        }
-        if (b.text.toString() == "=") {
-            val tmp = evaluateExpression(focusedEditText.text.toString())
-            if (tmp != null) {
-                state.answer = tmp
-                focusedEditText.setText("$tmp")
-                moveCursorToEnd(focusedEditText)
-            }
-            return
-        }
-        if (focusedEditText.text.isNotEmpty()) {
-            if ((focusedEditText.text.last() == '/' && b.text[0] == '÷') ||
-                (focusedEditText.text.last() == '*' && b.text[0] == '×') ||
-                (focusedEditText.text.last() == '+' && b.text[0] == '+')
-            ) {
+
+        when (button.text.toString()) {
+            "ans" -> {
+                focusedEditText.text.append(state.calculatedResult.toString())
                 return
             }
 
+            "=" -> {
+                val result = evaluateExpression(focusedEditText.text.toString())
+                if (result != null) {
+                    state.calculatedResult = result
+                    focusedEditText.setText("$result")
+                    val textLength = focusedEditText.text.length
+                    focusedEditText.setSelection(textLength)
+                }
+                return
+            }
         }
-        simulateKeyPress(focusedEditText, buttonKeyMap[b.text.toString()]!!)
+        if (focusedEditText.text.isNotEmpty()) {
+            if ((focusedEditText.text.last() == '/' && button.text[0] == '÷') || (focusedEditText.text.last() == '*' && button.text[0] == '×') || (focusedEditText.text.last() == '+' && button.text[0] == '+')) {
+                return
+            }
+        }
+        simulateKeyPress(focusedEditText, buttonKeyMap[button.text.toString()]!!)
     }
 
     private fun simulateKeyPress(editText: EditText, keyCode: Int) {
-        val eventDown = KeyEvent(KeyEvent.ACTION_DOWN, keyCode)
-        val eventUp = KeyEvent(KeyEvent.ACTION_UP, keyCode)
-        editText.dispatchKeyEvent(eventDown)
-        editText.dispatchKeyEvent(eventUp)
+        editText.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+        editText.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyCode))
     }
 }
 
