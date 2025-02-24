@@ -43,57 +43,7 @@ import java.io.StringReader
 
 class MainActivity : AppCompatActivity() {
 
-    class State {
-        var upperSelection: String = "CZK"
-            set(value) {
-                lock()
-                if (ratesMap.containsKey(value)) {
-                    field = value
-                } else {
-                    Log.v("Selection", "upperSelection cannot be $value")
-                }
-                unlock()
-            }
-        var lowerSelection: String = "EUR"
-            set(value) {
-                lock()
-                if (ratesMap.containsKey(value)) {
-                    field = value
-                } else {
-                    Log.v("Selection", "lowerSelection cannot be $value")
-                }
-                unlock()
-            }
-        var ratesMap = hashMapOf("EUR" to 1.0, "CZK" to 25.0)
-        var exchangeRate: Double = 25.0 // default value when app is first installed
-        var calculatedResult: Double = 0.0
-
-        private var locked: Boolean = false
-
-        fun calculateExchangeRate() {
-            lock()
-            val upperValue = ratesMap[upperSelection]
-            val lowerValue = ratesMap[lowerSelection]
-            if (upperValue != null && lowerValue != null) {
-                exchangeRate = upperValue / lowerValue
-            }
-            unlock()
-        }
-
-        fun unlock() {
-            locked = false
-        }
-
-        fun lock() {
-            while (locked) {
-                Thread.sleep(50)
-            }
-            locked = true
-        }
-    }
-
-    var state = State()
-
+    val state = State()
 
     private val textWatcher: TextWatcher = object : TextWatcher {
         override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
@@ -114,7 +64,6 @@ class MainActivity : AppCompatActivity() {
         editor.putInt("upperSelection", leftCurrencySpinner.selectedItemPosition)
         editor.putInt("lowerSelection", rightCurrencySpinner.selectedItemPosition)
         editor.apply()
-
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -144,13 +93,11 @@ class MainActivity : AppCompatActivity() {
 
 
         loadData(state) // Load locally stored rates
-        // Check for internet connectivity
         if (isNetworkAvailable(this)) {
             lifecycleScope.launch {
                 getOnlineRates(state) // Run asynchronously without blocking the main thread
             }
         }
-
 
 
         upperEditText.onFocusChangeListener = OnFocusChangeListener { _, b ->
@@ -239,7 +186,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // check if internet is available beforehand
-    // tries to get exchange rate in the following order: last stored locally, online, some default value
+    // geta exchange rate in the following order: last stored locally, online, some default value
     private fun getOnlineRates(state: State) {
         val client = OkHttpClient()
         val request =
@@ -250,42 +197,39 @@ class MainActivity : AppCompatActivity() {
             override fun onResponse(call: Call, response: Response) {
                 try {
                     val responseData = response.body?.string()
-                    if (responseData != null) {
-                        // Create XML pull parser
-                        val factory = XmlPullParserFactory.newInstance()
-                        val parser = factory.newPullParser()
-                        parser.setInput(StringReader(responseData))
-
-                        var eventType = parser.eventType
-                        state.lock()
-
-                        // Initialize EUR as base currency with rate 1.0
-                        state.ratesMap["EUR"] = 1.0
-
-                        // Parse XML
-                        while (eventType != XmlPullParser.END_DOCUMENT) {
-                            if (eventType == XmlPullParser.START_TAG && parser.name == "Cube") {
-                                val currency = parser.getAttributeValue(null, "currency")
-                                val rate = parser.getAttributeValue(null, "rate")
-
-                                if (currency != null && rate != null) {
-                                    state.ratesMap[currency] = rate.toDouble()
-                                }
-                            }
-                            eventType = parser.next()
-                        }
-
-                        // Save the rates to SharedPreferences
-                        val ratesObject = JSONObject()
-                        for ((key, value) in state.ratesMap) {
-                            ratesObject.put(key, value)
-                        }
-                        saveExchangeRates(ratesObject)
-                        state.unlock()
-
-                    } else {
+                    if (responseData == null) {
                         Log.e("API Response", "Null has been returned as a response")
+                        return
                     }
+                    // Create XML pull parser
+                    val factory = XmlPullParserFactory.newInstance()
+                    val parser = factory.newPullParser()
+                    parser.setInput(StringReader(responseData))
+
+                    var eventType = parser.eventType
+                    state.lock()
+
+                    // Parse XML
+                    while (eventType != XmlPullParser.END_DOCUMENT) {
+                        if (eventType == XmlPullParser.START_TAG && parser.name == "Cube") {
+                            val currency = parser.getAttributeValue(null, "currency")
+                            val rate = parser.getAttributeValue(null, "rate")
+
+                            if (currency != null && rate != null) {
+                                state.ratesMap[currency] = rate.toDouble()
+                            }
+                        }
+                        eventType = parser.next()
+                    }
+
+                    // Save the rates to SharedPreferences
+                    val ratesObject = JSONObject()
+                    for ((key, value) in state.ratesMap) {
+                        ratesObject.put(key, value)
+                    }
+                    saveExchangeRates(ratesObject)
+                    state.unlock()
+
                 } catch (e: Exception) {
                     Log.e("XML Parsing", "Error parsing XML response", e)
                     runOnUiThread {
@@ -349,59 +293,16 @@ class MainActivity : AppCompatActivity() {
             }
         }
         state.unlock()
-
-        state.calculateExchangeRate()
-
-
     }
 
     @SuppressLint("DefaultLocale")
     fun convert(state: State) {
-        state.calculateExchangeRate()
-        val currencyMap = hashMapOf(
-            "USD" to "$",
-            "EUR" to "€",
-            "JPY" to "¥",
-            "GBP" to "£",
-            "AUD" to "A$",
-            "CAD" to "C$",
-            "CHF" to "CHF",
-            "CNY" to "¥",
-            "SEK" to "kr",
-            "NZD" to "NZ$",
-            "MXN" to "$",
-            "SGD" to "S$",
-            "HKD" to "HK$",
-            "NOK" to "kr",
-            "KRW" to "₩",
-            "TRY" to "₺",
-            "INR" to "₹",
-            "RUB" to "₽",
-            "ZAR" to "R",
-            "BRL" to "R$",
-            "TWD" to "NT$",
-            "PLN" to "zł",
-            "THB" to "฿",
-            "CZK" to "Kč",
-            "DKK" to "kr",
-            "HUF" to "Ft",
-            "ILS" to "₪",
-            "MYR" to "RM",
-            "PHP" to "₱",
-            "IDR" to "Rp",
-            "PKR" to "₨",
-            "VND" to "₫",
-            "NGN" to "₦",
-            "EGP" to "E£",
-            "KZT" to "₸",
-            "UAH" to "₴"
-        )
         val exchangeRateText: TextView = findViewById(R.id.exchangeRateText)
         exchangeRateText.text = getString(
             R.string.exchange_rate_format,
-            currencyMap[state.upperSelection],
-            String.format("%.5f", 1 / state.exchangeRate),
-            currencyMap[state.lowerSelection]
+            state.currencyMap[state.upperSelection],
+            String.format("%.5f", 1 / state.exchangeRate()),
+            state.currencyMap[state.lowerSelection]
         )
 
 
@@ -419,9 +320,9 @@ class MainActivity : AppCompatActivity() {
 
 
         if (upperView.isFocused && upperVal != null) {
-            lowerView.setText(String.format("%.2f", upperVal / state.exchangeRate))
+            lowerView.setText(String.format("%.2f", upperVal / state.exchangeRate()))
         } else if (lowerView.isFocused && lowerVal != null) {
-            upperView.setText(String.format("%.2f", lowerVal * state.exchangeRate))
+            upperView.setText(String.format("%.2f", lowerVal * state.exchangeRate()))
         } else if (upperVal == null) {
             lowerView.text.clear()
         } else if (lowerVal == null) {
@@ -533,5 +434,3 @@ class MainActivity : AppCompatActivity() {
         editText.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyCode))
     }
 }
-
-
