@@ -1,6 +1,5 @@
 package com.bluemarble.converter2
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
@@ -40,8 +39,30 @@ import java.util.concurrent.TimeUnit
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.StringReader
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
+
+    val buttonKeyMap: HashMap<String, Int> = hashMapOf(
+        "del" to KeyEvent.KEYCODE_DEL,
+        "(" to KeyEvent.KEYCODE_NUMPAD_LEFT_PAREN,
+        ")" to KeyEvent.KEYCODE_NUMPAD_RIGHT_PAREN,
+        "÷" to KeyEvent.KEYCODE_SLASH,
+        "×" to KeyEvent.KEYCODE_NUMPAD_MULTIPLY,
+        "-" to KeyEvent.KEYCODE_MINUS,
+        "+" to KeyEvent.KEYCODE_PLUS,
+        "." to KeyEvent.KEYCODE_PERIOD,
+        "0" to KeyEvent.KEYCODE_0,
+        "1" to KeyEvent.KEYCODE_1,
+        "2" to KeyEvent.KEYCODE_2,
+        "3" to KeyEvent.KEYCODE_3,
+        "4" to KeyEvent.KEYCODE_4,
+        "5" to KeyEvent.KEYCODE_5,
+        "6" to KeyEvent.KEYCODE_6,
+        "7" to KeyEvent.KEYCODE_7,
+        "8" to KeyEvent.KEYCODE_8,
+        "9" to KeyEvent.KEYCODE_9
+    )
 
     val state = State()
 
@@ -134,7 +155,7 @@ class MainActivity : AppCompatActivity() {
                 parent: AdapterView<*>?, view: View?, position: Int, id: Long
             ) {
                 state.lowerSelection =
-                    parent?.getItemAtPosition(position).toString().slice((IntRange(0, 2)))
+                    parent?.getItemAtPosition(position).toString().slice(0..2)
                 // Use the selectedCurrency value to update your UI or perform other actions
                 lowerEditTextLayout.hint = state.lowerSelection
                 convert(state)
@@ -145,10 +166,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // swap currency selections when the arrows icon is pressed
         val exchangeArrows: ImageButton = findViewById(R.id.exchangeArrows)
         val animation: Animation = AnimationUtils.loadAnimation(this, R.anim.scale_animation)
-
-
         exchangeArrows.setOnClickListener { v ->
             v.startAnimation(animation)
             val tmp = rightCurrencySpinner.selectedItemId.toInt()
@@ -295,16 +315,18 @@ class MainActivity : AppCompatActivity() {
         state.unlock()
     }
 
-    @SuppressLint("DefaultLocale")
-    fun convert(state: State) {
+    private fun updateExchangeRateText() {
         val exchangeRateText: TextView = findViewById(R.id.exchangeRateText)
         exchangeRateText.text = getString(
             R.string.exchange_rate_format,
             state.currencyMap[state.upperSelection],
-            String.format("%.5f", 1 / state.exchangeRate()),
+            String.format(Locale.US, "%.5f", 1 / state.exchangeRate()),
             state.currencyMap[state.lowerSelection]
         )
+    }
 
+    fun convert(state: State) {
+        updateExchangeRateText()
 
         val upperView: EditText = findViewById(R.id.editTextUpper)
         val lowerView: EditText = findViewById(R.id.editTextLower)
@@ -320,15 +342,14 @@ class MainActivity : AppCompatActivity() {
 
 
         if (upperView.isFocused && upperVal != null) {
-            lowerView.setText(String.format("%.2f", upperVal / state.exchangeRate()))
+            lowerView.setText(String.format(Locale.US, "%.2f", upperVal / state.exchangeRate()))
         } else if (lowerView.isFocused && lowerVal != null) {
-            upperView.setText(String.format("%.2f", lowerVal * state.exchangeRate()))
+            upperView.setText(String.format(Locale.US, "%.2f", lowerVal * state.exchangeRate()))
         } else if (upperVal == null) {
             lowerView.text.clear()
         } else if (lowerVal == null) {
             upperView.text.clear()
         }
-
     }
 
     // format and display timeInMillis
@@ -371,6 +392,8 @@ class MainActivity : AppCompatActivity() {
     private fun getFocusedEditText(): EditText? {
         val lowerEditText: EditText = findViewById(R.id.editTextLower)
         val upperEditText: EditText = findViewById(R.id.editTextUpper)
+        lowerEditText.showSoftInputOnFocus = false
+        upperEditText.showSoftInputOnFocus = false
         if (lowerEditText.hasFocus()) {
             return lowerEditText
         } else if (upperEditText.hasFocus()) {
@@ -382,27 +405,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun press(button: Button) {
         val focusedEditText: EditText = getFocusedEditText() ?: return
-        val buttonKeyMap: HashMap<String, Int> = hashMapOf(
-            "del" to KeyEvent.KEYCODE_DEL,
-            "(" to KeyEvent.KEYCODE_NUMPAD_LEFT_PAREN,
-            ")" to KeyEvent.KEYCODE_NUMPAD_RIGHT_PAREN,
-            "÷" to KeyEvent.KEYCODE_SLASH,
-            "×" to KeyEvent.KEYCODE_NUMPAD_MULTIPLY,
-            "-" to KeyEvent.KEYCODE_MINUS,
-            "+" to KeyEvent.KEYCODE_PLUS,
-            "." to KeyEvent.KEYCODE_PERIOD,
-            "0" to KeyEvent.KEYCODE_0,
-            "1" to KeyEvent.KEYCODE_1,
-            "2" to KeyEvent.KEYCODE_2,
-            "3" to KeyEvent.KEYCODE_3,
-            "4" to KeyEvent.KEYCODE_4,
-            "5" to KeyEvent.KEYCODE_5,
-            "6" to KeyEvent.KEYCODE_6,
-            "7" to KeyEvent.KEYCODE_7,
-            "8" to KeyEvent.KEYCODE_8,
-            "9" to KeyEvent.KEYCODE_9
-        )
-
 
         when (button.text.toString()) {
             "ans" -> {
