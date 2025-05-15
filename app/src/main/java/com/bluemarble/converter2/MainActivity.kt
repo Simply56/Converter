@@ -43,7 +43,7 @@ import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
-    val buttonKeyMap: HashMap<String, Int> = hashMapOf(
+    private val buttonKeyMap: HashMap<String, Int> = hashMapOf(
         "del" to KeyEvent.KEYCODE_DEL,
         "(" to KeyEvent.KEYCODE_NUMPAD_LEFT_PAREN,
         ")" to KeyEvent.KEYCODE_NUMPAD_RIGHT_PAREN,
@@ -212,7 +212,6 @@ class MainActivity : AppCompatActivity() {
         val request =
             Request.Builder().url("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")
                 .build()
-
         client.newCall(request).enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
                 try {
