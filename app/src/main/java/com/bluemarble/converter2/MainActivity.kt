@@ -92,28 +92,26 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN)
 
+        initializeCustomKeyboard()
 
         val upperEditTextLayout: TextInputLayout = findViewById(R.id.editTextUpperLayout)
         val lowerEditTextLayout: TextInputLayout = findViewById(R.id.editTextLowerLayout)
         val lowerEditText: EditText = findViewById(R.id.editTextLower)
         val upperEditText: EditText = findViewById(R.id.editTextUpper)
+        lowerEditText.showSoftInputOnFocus = false
+        upperEditText.showSoftInputOnFocus = false
 
-        initializeCustomKeyboard()
+
         findViewById<Button>(R.id.button_delete).setOnLongClickListener {
             lowerEditText.text.clear()
             upperEditText.text.clear()
             true
         }
 
-
-        lowerEditText.showSoftInputOnFocus = false
-        upperEditText.showSoftInputOnFocus = false
-
         val leftCurrencySpinner: Spinner = findViewById(R.id.upperCurrencySpinner)
         val rightCurrencySpinner: Spinner = findViewById(R.id.lowerCurrencySpinner)
 
-
-        loadData(state) // Load locally stored rates
+        loadState(state) // Load locally stored rates
         if (isNetworkAvailable(this)) {
             lifecycleScope.launch {
                 getOnlineRates(state) // Run asynchronously without blocking the main thread
@@ -133,6 +131,8 @@ class MainActivity : AppCompatActivity() {
                 lowerEditText.addTextChangedListener(textWatcher)
             }
         }
+
+        // TODO: USE THE LAST SELECTED VIEW
         upperEditText.requestFocus()
 
         leftCurrencySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -246,7 +246,7 @@ class MainActivity : AppCompatActivity() {
                     for ((key, value) in state.ratesMap) {
                         ratesObject.put(key, value)
                     }
-                    saveExchangeRates(ratesObject)
+                    saveState(ratesObject)
                     state.unlock()
 
                 } catch (e: Exception) {
@@ -280,7 +280,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // stores all the rates
-    fun saveExchangeRates(rates: JSONObject) {
+    fun saveState(rates: JSONObject) {
         val sharedPreferences: SharedPreferences =
             this.getSharedPreferences("ConverterPrefs", Context.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
@@ -294,7 +294,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // tries to get the last stored exchange rate if not returns some default rate
-    private fun loadData(state: State) {
+    private fun loadState(state: State) {
         val sharedPreferences: SharedPreferences =
             this.getSharedPreferences("ConverterPrefs", Context.MODE_PRIVATE)
 
