@@ -124,7 +124,7 @@ class MainActivity : AppCompatActivity() {
             if (b) {
                 lowerEditText.removeTextChangedListener(textWatcher)
                 upperEditText.addTextChangedListener(textWatcher)
-                state.focustEditTextView = "upper"
+                state.focusedEditTextView = "upper"
                 saveFocusedEditText()
             }
         }
@@ -132,12 +132,12 @@ class MainActivity : AppCompatActivity() {
             if (a) {
                 upperEditText.removeTextChangedListener(textWatcher)
                 lowerEditText.addTextChangedListener(textWatcher)
-                state.focustEditTextView = "lower"
+                state.focusedEditTextView = "lower"
                 saveFocusedEditText()
             }
         }
 
-        if (state.focustEditTextView == "lower") {
+        if (state.focusedEditTextView == "lower") {
             lowerEditText.requestFocus()
         } else {
             upperEditText.requestFocus()
@@ -304,7 +304,7 @@ class MainActivity : AppCompatActivity() {
         val prefs: SharedPreferences =
             this.getSharedPreferences("ConverterPrefs", Context.MODE_PRIVATE)
         prefs.edit {
-            putString("lastFocused", state.focustEditTextView)
+            putString("lastFocused", state.focusedEditTextView)
         }
     }
 
@@ -328,7 +328,7 @@ class MainActivity : AppCompatActivity() {
         }
         state.unlock()
         // load last selected EditTextView
-        state.focustEditTextView = prefs.getString("lastFocused", "upper").toString()
+        state.focusedEditTextView = prefs.getString("lastFocused", "upper").toString()
     }
 
     private fun updateExchangeRateText() {

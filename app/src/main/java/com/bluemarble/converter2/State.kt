@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class State {
     private var locked: AtomicBoolean = AtomicBoolean(false)
-    var focustEditTextView: String = "upper"
+    var focusedEditTextView: String = "upper"
     var upperSelection: String = "CZK"
         set(value) {
             lock()
@@ -81,7 +81,7 @@ class State {
     }
 
     fun unlock() {
-        locked.set(false);
+        locked.set(false)
     }
 
     /**
