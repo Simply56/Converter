@@ -1,8 +1,10 @@
 package com.bluemarble.converter2
 
 import android.util.Log
+import java.util.concurrent.atomic.AtomicBoolean
 
 class State {
+    private var locked: AtomicBoolean = AtomicBoolean(false)
     var upperSelection: String = "CZK"
         set(value) {
             lock()
@@ -64,7 +66,6 @@ class State {
     var ratesMap = hashMapOf("EUR" to 1.0, "CZK" to 25.0)
     var calculatedResult: Double = 0.0
 
-    private var locked: Boolean = false
 
     fun exchangeRate(): Double {
         lock()
@@ -79,13 +80,16 @@ class State {
     }
 
     fun unlock() {
-        locked = false
+        locked.set(false);
     }
 
+    /**
+     * Locks this entire class preventing it from modification
+     */
     fun lock() {
-        while (locked) {
+        while (locked.get()) {
             Thread.sleep(50)
         }
-        locked = true
+        locked.set(true)
     }
 }
