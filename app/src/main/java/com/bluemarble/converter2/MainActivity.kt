@@ -40,6 +40,7 @@ import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.StringReader
 import java.util.Locale
+import androidx.core.content.edit
 
 class MainActivity : AppCompatActivity() {
 
@@ -70,7 +71,7 @@ class MainActivity : AppCompatActivity() {
         override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
         override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {}
         override fun afterTextChanged(s: Editable) {
-            convert(state)
+            convert()
         }
     }
 
@@ -111,10 +112,10 @@ class MainActivity : AppCompatActivity() {
         val leftCurrencySpinner: Spinner = findViewById(R.id.upperCurrencySpinner)
         val rightCurrencySpinner: Spinner = findViewById(R.id.lowerCurrencySpinner)
 
-        loadState(state) // Load locally stored rates
+        loadState() // Load locally stored rates
         if (isNetworkAvailable(this)) {
             lifecycleScope.launch {
-                getOnlineRates(state) // Run asynchronously without blocking the main thread
+                getOnlineRates() // Run asynchronously without blocking the main thread
             }
         }
 
@@ -123,17 +124,24 @@ class MainActivity : AppCompatActivity() {
             if (b) {
                 lowerEditText.removeTextChangedListener(textWatcher)
                 upperEditText.addTextChangedListener(textWatcher)
+                state.focustEditTextView = "upper"
+                saveFocusedEditText()
             }
         }
         lowerEditText.onFocusChangeListener = OnFocusChangeListener { _, a ->
             if (a) {
                 upperEditText.removeTextChangedListener(textWatcher)
                 lowerEditText.addTextChangedListener(textWatcher)
+                state.focustEditTextView = "lower"
+                saveFocusedEditText()
             }
         }
 
-        // TODO: USE THE LAST SELECTED VIEW
-        upperEditText.requestFocus()
+        if (state.focustEditTextView == "lower") {
+            lowerEditText.requestFocus()
+        } else {
+            upperEditText.requestFocus()
+        }
 
         leftCurrencySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
@@ -143,7 +151,7 @@ class MainActivity : AppCompatActivity() {
                     parent?.getItemAtPosition(position).toString().slice((IntRange(0, 2)))
                 // Use the selectedCurrency value to update your UI or perform other actions
                 upperEditTextLayout.hint = state.upperSelection
-                convert(state)
+                convert()
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {
@@ -154,11 +162,10 @@ class MainActivity : AppCompatActivity() {
             override fun onItemSelected(
                 parent: AdapterView<*>?, view: View?, position: Int, id: Long
             ) {
-                state.lowerSelection =
-                    parent?.getItemAtPosition(position).toString().slice(0..2)
+                state.lowerSelection = parent?.getItemAtPosition(position).toString().slice(0..2)
                 // Use the selectedCurrency value to update your UI or perform other actions
                 lowerEditTextLayout.hint = state.lowerSelection
-                convert(state)
+                convert()
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {
@@ -207,7 +214,7 @@ class MainActivity : AppCompatActivity() {
 
     // check if internet is available beforehand
     // geta exchange rate in the following order: last stored locally, online, some default value
-    private fun getOnlineRates(state: State) {
+    private fun getOnlineRates() {
         val client = OkHttpClient()
         val request =
             Request.Builder().url("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")
@@ -293,25 +300,35 @@ class MainActivity : AppCompatActivity() {
         editor.apply()
     }
 
+    private fun saveFocusedEditText() {
+        val prefs: SharedPreferences =
+            this.getSharedPreferences("ConverterPrefs", Context.MODE_PRIVATE)
+        prefs.edit {
+            putString("lastFocused", state.focustEditTextView)
+        }
+    }
+
     // tries to get the last stored exchange rate if not returns some default rate
-    private fun loadState(state: State) {
-        val sharedPreferences: SharedPreferences =
+    private fun loadState() {
+        val prefs: SharedPreferences =
             this.getSharedPreferences("ConverterPrefs", Context.MODE_PRIVATE)
 
         val leftCurrencySpinner: Spinner = findViewById(R.id.upperCurrencySpinner)
         val rightCurrencySpinner: Spinner = findViewById(R.id.lowerCurrencySpinner)
 
-        leftCurrencySpinner.setSelection(sharedPreferences.getInt("upperSelection", 0))
-        rightCurrencySpinner.setSelection(sharedPreferences.getInt("lowerSelection", 1))
+        leftCurrencySpinner.setSelection(prefs.getInt("upperSelection", 0))
+        rightCurrencySpinner.setSelection(prefs.getInt("lowerSelection", 1))
 
-        updateTimeAgo(sharedPreferences.getLong("lastUpdated", -1L))
+        updateTimeAgo(prefs.getLong("lastUpdated", -1L))
         state.lock()
-        for ((key, value) in sharedPreferences.all) {
-            if (value is Float) {
+        for ((key, value) in prefs.all) {
+            if ((value is Float) && (key.length == 3)) {
                 state.ratesMap[key] = value.toDouble()
             }
         }
         state.unlock()
+        // load last selected EditTextView
+        state.focustEditTextView = prefs.getString("lastFocused", "upper").toString()
     }
 
     private fun updateExchangeRateText() {
@@ -324,7 +341,7 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    fun convert(state: State) {
+    fun convert() {
         updateExchangeRateText()
 
         val upperView: EditText = findViewById(R.id.editTextUpper)
