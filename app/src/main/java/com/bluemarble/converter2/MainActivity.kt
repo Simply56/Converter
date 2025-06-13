@@ -65,7 +65,8 @@ class MainActivity : AppCompatActivity() {
         "9" to KeyEvent.KEYCODE_9
     )
 
-    val state = State()
+    //    val state = State()
+    val state: StateJava = StateJava.getInstance()
 
     private val textWatcher: TextWatcher = object : TextWatcher {
         override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
@@ -81,7 +82,7 @@ class MainActivity : AppCompatActivity() {
         val rightCurrencySpinner: Spinner = findViewById(R.id.lowerCurrencySpinner)
 
         val sharedPreferences: SharedPreferences =
-            this.getSharedPreferences("ConverterPrefs", Context.MODE_PRIVATE)
+            this.getSharedPreferences("ConverterPrefs", MODE_PRIVATE)
         val editor = sharedPreferences.edit()
         editor.putInt("upperSelection", leftCurrencySpinner.selectedItemPosition)
         editor.putInt("lowerSelection", rightCurrencySpinner.selectedItemPosition)
@@ -124,7 +125,7 @@ class MainActivity : AppCompatActivity() {
             if (b) {
                 lowerEditText.removeTextChangedListener(textWatcher)
                 upperEditText.addTextChangedListener(textWatcher)
-                state.focusedEditTextView = "upper"
+                state.setFocusedEditTextView("upper")
                 saveFocusedEditText()
             }
         }
@@ -132,7 +133,7 @@ class MainActivity : AppCompatActivity() {
             if (a) {
                 upperEditText.removeTextChangedListener(textWatcher)
                 lowerEditText.addTextChangedListener(textWatcher)
-                state.focusedEditTextView = "lower"
+                state.setFocusedEditTextView("lower")
                 saveFocusedEditText()
             }
         }
@@ -147,8 +148,9 @@ class MainActivity : AppCompatActivity() {
             override fun onItemSelected(
                 parent: AdapterView<*>?, view: View?, position: Int, id: Long
             ) {
-                state.upperSelection =
+                state.setUpperSelection(
                     parent?.getItemAtPosition(position).toString().slice((IntRange(0, 2)))
+                )
                 // Use the selectedCurrency value to update your UI or perform other actions
                 upperEditTextLayout.hint = state.upperSelection
                 convert()
@@ -242,7 +244,7 @@ class MainActivity : AppCompatActivity() {
                             val rate = parser.getAttributeValue(null, "rate")
 
                             if (currency != null && rate != null) {
-                                state.ratesMap[currency] = rate.toDouble()
+                                state.setRateFor(currency, rate.toDouble())
                             }
                         }
                         eventType = parser.next()
@@ -280,7 +282,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun isNetworkAvailable(context: Context): Boolean {
         val connectivityManager =
-            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            context.getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
         val network = connectivityManager.activeNetwork ?: return false
         val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
         return activeNetwork.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
@@ -289,7 +291,7 @@ class MainActivity : AppCompatActivity() {
     // stores all the rates
     fun saveState(rates: JSONObject) {
         val sharedPreferences: SharedPreferences =
-            this.getSharedPreferences("ConverterPrefs", Context.MODE_PRIVATE)
+            this.getSharedPreferences("ConverterPrefs", MODE_PRIVATE)
         val editor = sharedPreferences.edit()
         // Saving a number to SharedPreferences
         for (key in rates.keys()) {
@@ -302,7 +304,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun saveFocusedEditText() {
         val prefs: SharedPreferences =
-            this.getSharedPreferences("ConverterPrefs", Context.MODE_PRIVATE)
+            this.getSharedPreferences("ConverterPrefs", MODE_PRIVATE)
         prefs.edit {
             putString("lastFocused", state.focusedEditTextView)
         }
@@ -311,7 +313,7 @@ class MainActivity : AppCompatActivity() {
     // tries to get the last stored exchange rate if not returns some default rate
     private fun loadState() {
         val prefs: SharedPreferences =
-            this.getSharedPreferences("ConverterPrefs", Context.MODE_PRIVATE)
+            this.getSharedPreferences("ConverterPrefs", MODE_PRIVATE)
 
         val leftCurrencySpinner: Spinner = findViewById(R.id.upperCurrencySpinner)
         val rightCurrencySpinner: Spinner = findViewById(R.id.lowerCurrencySpinner)
@@ -323,7 +325,7 @@ class MainActivity : AppCompatActivity() {
         state.lock()
         for ((key, value) in prefs.all) {
             if ((value is Float) && (key.length == 3)) {
-                state.ratesMap[key] = value.toDouble()
+                state.setRateFor(key, value.toDouble())
             }
         }
         state.unlock()
@@ -335,9 +337,9 @@ class MainActivity : AppCompatActivity() {
         val exchangeRateText: TextView = findViewById(R.id.exchangeRateText)
         exchangeRateText.text = getString(
             R.string.exchange_rate_format,
-            state.currencyMap[state.upperSelection],
-            String.format(Locale.US, "%.5f", 1 / state.exchangeRate()),
-            state.currencyMap[state.lowerSelection]
+            state.getSymbolFor(state.upperSelection),
+            String.format(Locale.US, "%.5f", 1 / state.calculateExchangeRate()),
+            state.getSymbolFor(state.upperSelection)
         )
     }
 
@@ -358,9 +360,21 @@ class MainActivity : AppCompatActivity() {
 
 
         if (upperView.isFocused && upperVal != null) {
-            lowerView.setText(String.format(Locale.US, "%.2f", upperVal / state.exchangeRate()))
+            lowerView.setText(
+                String.format(
+                    Locale.US,
+                    "%.2f",
+                    upperVal / state.calculateExchangeRate()
+                )
+            )
         } else if (lowerView.isFocused && lowerVal != null) {
-            upperView.setText(String.format(Locale.US, "%.2f", lowerVal * state.exchangeRate()))
+            upperView.setText(
+                String.format(
+                    Locale.US,
+                    "%.2f",
+                    lowerVal * state.calculateExchangeRate()
+                )
+            )
         } else if (upperVal == null) {
             lowerView.text.clear()
         } else if (lowerVal == null) {
@@ -399,7 +413,7 @@ class MainActivity : AppCompatActivity() {
         return try {
             val exp = ExpressionBuilder(expression).build()
             exp.evaluate()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             return null
         }
     }
@@ -424,14 +438,14 @@ class MainActivity : AppCompatActivity() {
 
         when (button.text.toString()) {
             "ans" -> {
-                focusedEditText.text.append(state.calculatedResult.toString())
+                focusedEditText.text.append(state.lastResult.toString())
                 return
             }
 
             "=" -> {
                 val result = evaluateExpression(focusedEditText.text.toString())
                 if (result != null) {
-                    state.calculatedResult = result
+                    state.lastResult = result
                     focusedEditText.setText("$result")
                     val textLength = focusedEditText.text.length
                     focusedEditText.setSelection(textLength)
